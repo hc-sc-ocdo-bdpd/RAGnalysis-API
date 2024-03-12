@@ -5,9 +5,9 @@
 name: Build and deploy Python project to Azure Function App - med-app
 
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
 
 env:
