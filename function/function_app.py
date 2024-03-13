@@ -65,7 +65,10 @@ def model(req: func.HttpRequest, model: str) -> func.HttpResponse:
         embedding = np.array([embedding], dtype='float32')
         scores, ids = index.search(embedding, k=3)
 
-        prompt = f"{body} {'' if not use_rag else ('using the context' + ' | '.join(data.iloc[ids[0]]['text'][0:100]))}"
+        prompt = f"Answer: {body} {'' if not use_rag else ('using: ' + ' | '.join(data.iloc[ids[0]]['chunks'][0:150]))}"
+
+        print("Prompt: ", prompt)
+
         response = ''
 
         if model == 'llama':
@@ -140,6 +143,8 @@ def ai_studio(prompt: str, model: str) -> str:
             "max_tokens": 200,
             "stop": None
         }
-    ).json()['choices'][0]['message']
+    ).json()
     
-    return response.get('content')
+    print("Response: ", response)
+    
+    return response['choices'][0]['message'].get('content')
