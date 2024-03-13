@@ -23,7 +23,7 @@ Refer to the `experiment.ipynb` file for sample usage.
 For setting up the project for development:
 
 1. Clone the repository
-2. Add a `.env` file in the root directory with the below template. The API keys can be found in the ML Studio and OpenAI Studio endpoints pages (under the 'Consume' tab). 
+2. Add a `.env` file in the root directory of `function/` with the below template. The API keys can be found in the ML Studio and OpenAI Studio endpoints pages (under the 'Consume' tab). 
 
 ```
 MISTRAL_KEY=
