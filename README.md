@@ -23,12 +23,12 @@ Refer to the `experiment.ipynb` file for sample usage.
 For setting up the project for development:
 
 1. Clone the repository
-2. Add a `.env` file in the root directory of `function/` with the below template. The API keys can be found in the ML Studio and OpenAI Studio endpoints pages (under the 'Consume' tab). 
+2. Add a `.env` file in the root directory of `function/` AND the project root directory (for using the experiment notebook) with the below template. The API keys can be found in the ML Studio endpoint page (under the 'Consume' tab of each endpoint) and OpenAI Studio settings page. 
 
 ```
 MISTRAL_KEY=
 LLAMA_KEY=
-EMBEDDING_KEY=
+OPENAI_KEY=
 FUNCTION_KEY=
 ```
 
@@ -36,11 +36,12 @@ FUNCTION_KEY=
 
 ```py
 if model == 'llama':
-    endpoint = 'jludq'
-    deployment = 'llama-2-7b-chat-18'
-elif model == 'mistral':
-    endpoint = 'ebbtk'
-    deployment = 'mistralai-mistral-7b-instruct-5'
+    response = ml_studio(
+        prompt = prompt,
+        model = model,
+        endpoint = 'jludq',
+        deployment = 'llama-2-7b-chat-18'
+    )
 ```
 
 4. Install the 'Azure Functions App' extension and sign into Azure via this extension

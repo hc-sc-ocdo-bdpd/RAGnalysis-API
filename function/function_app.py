@@ -20,6 +20,21 @@ def route_mistral(req: func.HttpRequest) -> func.HttpResponse:
     return model(req, 'mistral')
 
 
+@app.route(route="gpt35a")
+def route_gpt35_4k(req: func.HttpRequest) -> func.HttpResponse:
+    return model(req, 'gpt35_4k')
+
+
+@app.route(route="gpt35b")
+def route_gpt35_16k(req: func.HttpRequest) -> func.HttpResponse:
+    return model(req, 'gpt35_16k')
+
+
+@app.route(route="gpt4")
+def route_gpt4_1106(req: func.HttpRequest) -> func.HttpResponse:
+    return model(req, 'gpt4_1106')
+
+
 def model(req: func.HttpRequest, model: str) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
     load_dotenv()
@@ -43,48 +58,39 @@ def model(req: func.HttpRequest, model: str) -> func.HttpResponse:
 
         embedding = requests.post(
                         url = "https://ragnalysis.openai.azure.com/openai/deployments/ada_embedding/embeddings?api-version=2023-05-15", 
-                        headers = { "Content-Type": "application/json", "api-key": os.getenv('EMBEDDING_KEY') }, 
+                        headers = { "Content-Type": "application/json", "api-key": os.getenv('OPENAI_KEY') }, 
                         json = { "input": body }
                     ).json()['data'][0]['embedding']
 
         embedding = np.array([embedding], dtype='float32')
         scores, ids = index.search(embedding, k=3)
 
-        print(data.iloc[ids[0]].assign(similarity=scores[0])[['title', 'similarity']].to_string())
-
-        endpoint = ''
-        deployment = ''
+        prompt = f"{body} {'' if not use_rag else ('using the context' + ' | '.join(data.iloc[ids[0]]['text'][0:100]))}"
+        response = ''
 
         if model == 'llama':
-            endpoint = 'jludq'
-            deployment = 'llama-2-7b-chat-18'
+            response = ml_studio(
+                prompt = prompt,
+                model = model,
+                endpoint = 'jludq',
+                deployment = 'llama-2-7b-chat-18'
+            )
         elif model == 'mistral':
-            endpoint = 'ebbtk'
-            deployment = 'mistralai-mistral-7b-instruct-5'
-
-        response = requests.post(
-            f'https://ragnalysis-{endpoint}.eastus2.inference.ml.azure.com/score',
-            headers = {'Content-Type':'application/json', 'Authorization':('Bearer '+ os.getenv(f'{model.upper()}_KEY')), 'azureml-model-deployment': deployment },
-            json = {
-                "input_data": {
-                    "input_string": [{
-                        "role": "user",
-                        "content": f"{body} {'' if not use_rag else ('using the context' + ' | '.join(data.iloc[ids[0]]['text'][0:100]))}"
-                    }],
-                    "parameters": {
-                    "temperature": 0.9,
-                    "top_p": 0.9,
-                    "do_sample": True,
-                    "max_new_tokens": 200
-            }}}).json()
-
-        # print("response ", response)
-        print("RAG: ", bool(use_rag), use_rag)
-        # print("prompt ",  f"{body} {'' if not bool(req.params.get('use_rag')) else ('using the context' + ' | '.join(data.iloc[ids[0]]['text'][0:100]))}")
+            response = ml_studio(
+                prompt = prompt,
+                model = model,
+                endpoint = 'ebbtk',
+                deployment = 'mistralai-mistral-7b-instruct-5'
+            )
+        elif model in ['gpt35_4k', 'gpt35_16k', 'gpt4_1106']:
+            response = ai_studio(
+                prompt = prompt,
+                model = model
+            )
 
         return func.HttpResponse(
             json.dumps({
-                "response": response.get('output'),
+                "response": response,
                 "source": data.iloc[ids[0]].assign(similarity=scores[0])[['title', 'similarity']].to_string(index=False),
                 "context": list(data.iloc[ids[0]]['chunks'])
             }),
@@ -96,3 +102,44 @@ def model(req: func.HttpRequest, model: str) -> func.HttpResponse:
             "This HTTP triggered function executed successfully. Pass a body in the query string or in the request body for a personalized response.",
             status_code=200
         )
+
+
+def ml_studio(prompt: str, model: str, endpoint: str, deployment: str) -> str:
+    response = requests.post(
+        url = f'https://ragnalysis-{endpoint}.eastus2.inference.ml.azure.com/score',
+        headers = {'Content-Type':'application/json', 'Authorization':('Bearer '+ os.getenv(f'{model.upper()}_KEY')), 'azureml-model-deployment': deployment },
+        json = {
+            "input_data": {
+                "input_string": [{
+                    "role": "user",
+                    "content": prompt
+                }],
+                "parameters": {
+                "temperature": 0.9,
+                "top_p": 0.9,
+                "do_sample": True,
+                "max_new_tokens": 200
+        }}}).json()
+
+    return response.get('output')
+
+
+def ai_studio(prompt: str, model: str) -> str:
+    response = requests.post(
+        url = f"https://ragnalysis.openai.azure.com/openai/deployments/{model}/chat/completions?api-version=2023-05-15", 
+        headers = { "Content-Type": "application/json", "api-key": os.getenv('OPENAI_KEY') }, 
+        json = { 
+            "messages": [{
+                "role": "user",
+                "content": prompt
+            }],
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "frequency_penalty": 0,
+            "presence_penalty": 0,
+            "max_tokens": 200,
+            "stop": None
+        }
+    ).json()['choices'][0]['message']
+    
+    return response.get('content')
