@@ -47,12 +47,12 @@ class rag():
                 pass
             else:
                 self.body = req.get('body')
-        
+
         self.model = model
-        self.use_rag = bool(req.params.get('use_rag') or True)
+        self.use_rag = req.params.get('use_rag') in ["True", True, None]
         self.temperature = float(req.params.get('temperature') or 0.9) 
         self.top_p = float(req.params.get('top_p') or 0.9)
-        self.do_sample = bool(req.params.get('do_sample') or True) 
+        self.do_sample = req.params.get('do_sample') in ["True", True, None]
         self.frequency_penalty = float(req.params.get('frequency_penalty') or 0) 
         self.presence_penalty = float(req.params.get('presence_penalty') or 0) 
         self.max_new_tokens = int(req.params.get('max_new_tokens') or 200) 
