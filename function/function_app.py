@@ -89,8 +89,7 @@ class rag():
             return func.HttpResponse(
                 json.dumps({
                     "response": response,
-                    "source": relevant_data.assign(similarity=scores[0])[['title', 'similarity']].to_string(index=False),
-                    "context": list(relevant_data['chunks']),
+                    "sources": relevant_data.assign(similarity=scores[0])[['title', 'similarity', 'url', 'chunks']].to_dict(orient='records'),
                     "parameters": self.__dict__
                 }),
                 mimetype="application/json"
