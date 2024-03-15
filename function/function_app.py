@@ -2,6 +2,7 @@ import azure.functions as func
 import logging
 from dotenv import load_dotenv
 import os
+from io import BytesIO
 import json
 import requests
 import pandas as pd
@@ -21,7 +22,16 @@ def route_mistral(req: func.HttpRequest) -> func.HttpResponse:
 
 
 @app.route(route="gpt35a")
-def route_gpt35_4k(req: func.HttpRequest) -> func.HttpResponse:
+@app.blob_input(arg_name="datablob",
+                path="app-data/data.csv",
+                connection="BlobStorageConnectionString")
+@app.blob_input(arg_name="indexblob",
+                path="app-data/chunks.faiss",
+                connection="BlobStorageConnectionString")
+def route_gpt35_4k(req: func.HttpRequest, datablob, indexblob) -> func.HttpResponse:
+    # data = pd.read_csv(BytesIO(datablob.read()))
+    # index = faiss.deserialize_index(np.frombuffer(indexblob.read(), dtype=np.uint8))
+
     return rag(req, 'gpt35_4k').generate()
 
 
@@ -58,6 +68,7 @@ class rag():
         self.max_new_tokens = int(req.params.get('max_new_tokens') or 200) 
         self.chunk_limit = int(req.params.get('chunk_limit') or 150) 
         self.k = int(req.params.get('k') or 3) 
+        self.param = self.__dict__
 
         logging.info("Request parameters: %s", self.__dict__)
 
@@ -85,7 +96,8 @@ class rag():
                 json.dumps({
                     "response": response,
                     "source": relevant_data.assign(similarity=scores[0])[['title', 'similarity']].to_string(index=False),
-                    "context": list(relevant_data['chunks'])
+                    "context": list(relevant_data['chunks']),
+                    "parameters": self.param
                 }),
                 mimetype="application/json"
             )
