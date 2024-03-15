@@ -22,13 +22,13 @@ def route_mistral(req: func.HttpRequest) -> func.HttpResponse:
 
 
 @app.route(route="gpt35a")
-@app.blob_input(arg_name="datablob",
-                path="app-data/data.csv",
-                connection="BlobStorageConnectionString")
-@app.blob_input(arg_name="indexblob",
-                path="app-data/chunks.faiss",
-                connection="BlobStorageConnectionString")
-def route_gpt35_4k(req: func.HttpRequest, datablob, indexblob) -> func.HttpResponse:
+# @app.blob_input(arg_name="datablob",
+#                 path="app-data/data.csv",
+#                 connection="BlobStorageConnectionString")
+# @app.blob_input(arg_name="indexblob",
+#                 path="app-data/chunks.faiss",
+#                 connection="BlobStorageConnectionString")
+def route_gpt35_4k(req: func.HttpRequest) -> func.HttpResponse:
     # data = pd.read_csv(BytesIO(datablob.read()))
     # index = faiss.deserialize_index(np.frombuffer(indexblob.read(), dtype=np.uint8))
 
@@ -68,22 +68,16 @@ class rag():
         self.max_new_tokens = int(req.params.get('max_new_tokens') or 200) 
         self.chunk_limit = int(req.params.get('chunk_limit') or 150) 
         self.k = int(req.params.get('k') or 3) 
-        self.param = self.__dict__
-
-        logging.info("Request parameters: %s", self.__dict__)
-
-        self.index = faiss.read_index('data/chunks.faiss')
-        self.data = pd.read_csv('data/data.csv')
 
     def generate(self) -> func.HttpResponse:
         if self.body:
+            index = faiss.read_index('data/chunks.faiss')
+            data = pd.read_csv('data/data.csv')
             embedding = self._embed()
-            scores, ids = self.index.search(embedding, k=self.k)
-            relevant_data = self.data.iloc[ids[0]]
+            scores, ids = index.search(embedding, k=self.k)
+            relevant_data = data.iloc[ids[0]]
             context = ' | '.join(relevant_data['chunks'][0:self.chunk_limit])
             self.prompt = f"Answer: {self.body} {('using: ' + context) if self.use_rag else ''}"
-
-            logging.info("Prompt: %s", self.prompt)
 
             if self.model in ['llama', 'mistral']:
                 response = self._ml_studio_model()
@@ -97,7 +91,7 @@ class rag():
                     "response": response,
                     "source": relevant_data.assign(similarity=scores[0])[['title', 'similarity']].to_string(index=False),
                     "context": list(relevant_data['chunks']),
-                    "parameters": self.param
+                    "parameters": self.__dict__
                 }),
                 mimetype="application/json"
             )

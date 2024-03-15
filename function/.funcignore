@@ -7,3 +7,4 @@ local.settings.json
 test
 .venv
 experiment.ipynb
+__pycache__
