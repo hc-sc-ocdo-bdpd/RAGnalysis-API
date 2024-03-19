@@ -48,6 +48,10 @@ class rag():
                 response = self._ml_studio_model()
             elif self.model in ['gpt35_4k', 'gpt35_16k', 'gpt4_1106']:
                 response = self._ai_studio_model()
+            elif self.model in ['qwen']:
+                response = self._containerized_model()
+            else:
+                raise Exception("Invalid model choice")
 
             logging.info("Response: %s", response)
 
@@ -128,6 +132,25 @@ class rag():
                 }
             ).json()
             return response['choices'][0]['message'].get('content')
+        except KeyError as e:
+            raise e(f'AI studio model failed to generate prompt with the given context. \n \
+                    Try setting use_rag to False to see if it is an issue with the context. \n \
+                    Response object: {response}')
+
+    def _containerized_model(self) -> str:
+        try:
+            return requests.post(
+                url="https://localai-selfhost.salmonground-3deb4a95.canadaeast.azurecontainerapps.io/chat/completions",
+                json={
+                    "prompt": self.prompt,
+                    "temperature": self.temperature,
+                    "top_p": self.top_p,
+                    "frequency_penalty": self.frequency_penalty,
+                    "presence_penalty": self.presence_penalty,
+                    "max_tokens": self.max_new_tokens,
+                    "stop": None
+                }
+            ).json()['response']
         except KeyError as e:
             raise e(f'AI studio model failed to generate prompt with the given context. \n \
                     Try setting use_rag to False to see if it is an issue with the context. \n \

@@ -16,6 +16,11 @@ def route_mistral(req: func.HttpRequest) -> func.HttpResponse:
     return rag(req, 'mistral').generate()
 
 
+@app.route(route="qwen")
+def route_qwen(req: func.HttpRequest) -> func.HttpResponse:
+    return rag(req, 'qwen').generate()
+
+
 @app.route(route="gpt35a")
 # @app.blob_input(arg_name="datablob", path="app-data/data.csv", connection="BlobStorageConnectionString")
 # @app.blob_input(arg_name="indexblob", path="app-data/chunks.faiss", connection="BlobStorageConnectionString")
