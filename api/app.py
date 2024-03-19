@@ -8,7 +8,7 @@ load_dotenv()
 class RagnalysisClient:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key if api_key else os.getenv('FUNCTION_KEY')
-        self.models = ['llama', 'mistral', 'gpt35a', 'gpt35b', 'gpt4']
+        self.models = ['llama', 'mistral', 'gpt35a', 'gpt35b', 'gpt4', 'qwen']
         self.base_url = f'https://med-app.azurewebsites.net/api'
 
         if not self.api_key:
@@ -44,6 +44,9 @@ class RagnalysisClient:
 
     def mistral(self, prompt: str, **kwargs):
         return self._model(prompt, model='mistral', **kwargs)
+
+    def qwen(self, prompt: str, **kwargs):
+        return self._model(prompt, model='qwen', **kwargs)
 
     def gpt3s(self, prompt: str, **kwargs):
         return self._model(prompt, model='gpt35a', **kwargs)
