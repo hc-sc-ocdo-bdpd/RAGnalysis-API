@@ -7,7 +7,6 @@ openai
 faiss-cpu
 pandas
 numpy
-python-dotenv
 packaging
 requests
 azure-storage-blob

@@ -5,10 +5,10 @@ from azure.storage.blob import BlobClient
 
 def read_blob(blob_name: str, operation):
     blob = BlobClient(
-                account_url=os.getenv('STORAGE_URL'), 
-                container_name=os.getenv('STORAGE_CONTAINER'), 
+                account_url=os.environ('STORAGE_URL'), 
+                container_name=os.environ('STORAGE_CONTAINER'), 
                 blob_name=blob_name, 
-                credential=os.getenv('STORAGE_KEY')
+                credential=os.environ('STORAGE_KEY')
             )
     
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:

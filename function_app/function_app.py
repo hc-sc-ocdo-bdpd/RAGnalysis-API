@@ -1,8 +1,5 @@
-from dotenv import load_dotenv
 import azure.functions as func
 from backend import rag
-
-load_dotenv()
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ADMIN)
 

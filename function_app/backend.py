@@ -73,7 +73,7 @@ class rag():
         try:
             embedding = requests.post(
                 url = "https://ragnalysis.openai.azure.com/openai/deployments/ada_embedding/embeddings?api-version=2023-05-15", 
-                headers = { "Content-Type": "application/json", "api-key": os.getenv('OPENAI_KEY') }, 
+                headers = { "Content-Type": "application/json", "api-key": os.environ('OPENAI_KEY') }, 
                 json = { "input": self.body }
             ).json()['data'][0]['embedding']
         except KeyError as e:
@@ -83,14 +83,14 @@ class rag():
 
     def _ml_studio_model(self) -> str:
         model = self.model.upper()
-        endpoint = os.getenv(f'{model}_ENDPOINT')
+        endpoint = os.environ(f'{model}_ENDPOINT')
         try:
             response = requests.post(
                 url = f'https://ragnalysis-{endpoint}.eastus2.inference.ml.azure.com/score',
                 headers = {
                     'Content-Type':'application/json',
-                    'Authorization':('Bearer '+ os.getenv(f'{model}_KEY')), 
-                    'azureml-model-deployment': os.getenv(f'{model}_MODEL')
+                    'Authorization':('Bearer '+ os.environ(f'{model}_KEY')), 
+                    'azureml-model-deployment': os.environ(f'{model}_MODEL')
                 },
                 json = {
                     "input_data": {
@@ -117,7 +117,7 @@ class rag():
         try:
             response = requests.post(
                 url = f"https://ragnalysis.openai.azure.com/openai/deployments/{self.model}/chat/completions?api-version=2023-05-15", 
-                headers = { "Content-Type": "application/json", "api-key": os.getenv('OPENAI_KEY') }, 
+                headers = { "Content-Type": "application/json", "api-key": os.environ('OPENAI_KEY') }, 
                 json = { 
                     "messages": [{
                         "role": "user",
