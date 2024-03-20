@@ -41,38 +41,38 @@ For setting up the project for development:
 
 1. Clone the repository
 2. Add a `.env` file in the root directory of `function/` AND the project root directory (for using the experiment notebook) with the below template. Please contact a developer for the API keys. Alternatively, you could try to find them through Azure:
-    * **ML Studio**: Keys are unique for each model. Go to the 'Endpoints' tab, click into the model, go to the 'Consume' tab and copy the primary key. The model name is the name of the model as it appears in the model catalogue, and the endpoint is the suffix of the endpoint name. 
-    * **AI Studio**: A single openAI key provides access to all models. This can be found in the settings page
-    * **Storage**: The connection string, key, and URL are found in the 'Storage Account' associated with the Function App. The container is the name of the blob container. 
-    * **Function Key**: This is the Azure Functions App key.
+    * **AI Studio** (`OPENAI_KEY`): A single openAI key provides access to all models. This can be found in the settings page
+    * **Storage** (`STORAGE_URL`, `STORAGE_KEY`): These are found in the 'Storage Account' associated with the Function App
+    * **Function Key** (`FUNCTION_KEY`): This is the Azure Functions App key.
 
 ```
 OPENAI_KEY=
 FUNCTION_KEY=
-CONNECTION_STRING=
 STORAGE_KEY=
 STORAGE_URL=
-STORAGE_CONTAINER=
-
-MISTRAL_MODEL=
-MISTRAL_ENDPOINT=
-MISTRAL_KEY=
-
-LLAMA_MODEL=
-LLAMA_ENDPOINT=
-LLAMA_KEY=
 ```
 
-3. Create a `local.settings.json` file in the `function` directory. The 'CONNECTION STRING' can be found in the storage account resource. 
+3. Create a `local.settings.json` file in the `function` directory. The purpose of this file is to simulate the Azure environment by defining environment variables that are only accessible in the Azure environment. Contact a developer for these 
 
 ```py
 {
   "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=medapp2758d47;AccountKey=hGSmgZfgPqEbUY1zcUFezZcT/HycpJARcWopMdjjyuvHZcshAWGM6+6em0KHH6STb5nf5TWMSqDs+AStSZGwKA==;EndpointSuffix=core.windows.net",
+    "AzureWebJobsStorage": "",
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
-    "BlobStorageConnectionString": [CONNECTION STRING]
+    "BlobStorageConnectionString": "",
+    "OPENAI_KEY": "",
+    "CONNECTION_STRING": "",
+    "STORAGE_KEY": "",
+    "STORAGE_URL": "",
+    "STORAGE_CONTAINER": "app-data",
+    "MISTRAL_MODEL": "mistralai-mistral-7b-instruct-5",
+    "MISTRAL_ENDPOINT": "jludq",
+    "MISTRAL_KEY": "",
+    "LLAMA_MODEL": "llama-2-7b-chat-18",
+    "LLAMA_ENDPOINT": "ebbtk",
+    "LLAMA_KEY": ""
   }
 }
 ```
