@@ -8,7 +8,7 @@ load_dotenv()
 class RagnalysisClient:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key if api_key else os.getenv('FUNCTION_KEY')
-        self.models = ['llama', 'mistral', 'gpt35a', 'gpt35b', 'gpt4', 'qwen']
+        self.models = ['llama', 'mistral', 'gpt3s', 'gpt3l', 'gpt4', 'qwen']
         self.base_url = f'https://med-app.azurewebsites.net/api'
 
         if not self.api_key:
@@ -22,6 +22,7 @@ class RagnalysisClient:
                do_sample: Optional[bool] = True, frequency_penalty: Optional[float] = 0,
                presence_penalty: Optional[float] = 0, max_new_tokens: Optional[int] = 200,
                chunk_limit: Optional[int] = 150, k: Optional[int] = 3) -> dict[str: any]:
+        
         response = requests.post(
             url = f"{self.base_url}/{model}?code={self.api_key}", 
             params = {
