@@ -1,12 +1,13 @@
 import os
 import json
+import time
 import logging
 import requests
 import pandas as pd
 import numpy as np
 import faiss
 import azure.functions as func
-from utils import read_blob
+from utils import read_blob, timer
 
 
 class rag():
@@ -34,32 +35,49 @@ class rag():
 
     def generate(self) -> func.HttpResponse:
         if self.body:
-            # index = faiss.read_index('data/chunks.faiss')
-            # data = pd.read_csv('data/data.csv')
-            index = read_blob('chunks.faiss', faiss.read_index)
             data = read_blob('data.csv', pd.read_csv)
-            embedding = self._embed()
-            scores, ids = index.search(embedding, k=self.k)
+            embedding, embed_time = self._embed()
+            (scores, ids), search_time = self._index(embedding)
+            entity, entity_extraction_time = self._entity_extractor()
             relevant_data = data.iloc[ids[0]]
             context = ' | '.join(relevant_data['chunks'][0:self.chunk_limit])
             self.prompt = f"Answer: {self.body} {('using: ' + context) if self.use_rag else ''}"
-
-            if self.model in ['llama', 'mistral']:
-                response = self._ml_studio_model()
-            elif self.model in ['gpt35_4k', 'gpt35_16k', 'gpt4_1106']:
-                response = self._ai_studio_model()
-            elif self.model in ['qwen']:
-                response = self._containerized_model()
-            else:
-                raise Exception("Invalid model choice")
+            response, generate_time = self._augment()
 
             logging.info("Response: %s", response)
 
             return func.HttpResponse(
                 json.dumps({
+                    "id": time.time(),
                     "response": response,
                     "sources": relevant_data.assign(similarity=scores[0])[['title', 'similarity', 'url', 'chunks']].to_dict(orient='records'),
-                    "parameters": self.__dict__
+                    "parameters": self.__dict__,
+                    "logs": {
+                        "runtime": {
+                            "embed": round(embed_time, 2),
+                            "search": round(search_time, 2),
+                            "entity_extraction": round(entity_extraction_time, 2),
+                            "generate": round(generate_time, 2),
+                            "total": round(embed_time + search_time + generate_time + entity_extraction_time, 2)
+                        },
+                        "tokens": {
+                            "embed": {
+                                "in": len(self.body.split(' ')),
+                                "out": len(embedding[0])
+                            },
+                            "llm": {
+                                "in": len(self.prompt.split(' ')),
+                                "out": len(response.split(' '))
+                            },
+                        },
+                        "cost": {
+                            "embed": len(self.body.split(' ')) / 1000 * 0.000136,
+                            "llm": 0,
+                            "total": 0
+                        },
+                        # "embedding": embedding,
+                        "entity": entity
+                    }
                 }),
                 mimetype="application/json"
             )
@@ -69,6 +87,7 @@ class rag():
                 status_code=200
             )
 
+    @timer
     def _embed(self) -> list[float]:
         try:
             embedding = requests.post(
@@ -80,6 +99,28 @@ class rag():
             raise e('ADA embedding API failed to embed: %s', self.body) 
         else:
             return np.array([embedding], dtype='float32')
+
+    @timer
+    def _index(self, embedding) -> list:
+        index = read_blob('chunks.faiss', faiss.read_index)
+        scores, ids = index.search(embedding, k=self.k)
+        return scores, ids
+
+    @timer
+    def _augment(self) -> str:
+        if self.model in ['llama', 'mistral']:
+            response = self._ml_studio_model()
+        elif self.model in ['gpt35_4k', 'gpt35_16k', 'gpt4_1106']:
+            response = self._ai_studio_model()
+        elif self.model in ['qwen']:
+            response = self._containerized_model()
+        else:
+            raise Exception("Invalid model choice")
+        return response
+
+    @timer
+    def _entity_extractor(self) -> str:
+        return ""
 
     def _ml_studio_model(self) -> str:
         model = self.model.upper()
