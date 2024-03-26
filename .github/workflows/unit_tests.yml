@@ -27,8 +27,9 @@ jobs:
         working-directory: function_app
 
       - name: Run Pytest
-        run: pytest --log-cli-level=INFO tests/ --junit-xml=.test_report.xml
-        working-directory: function_app
+        run: |
+          cd function_app
+          pytest --log-cli-level=INFO tests/ --junit-xml=.test_report.xml
 
       - name: Generate PyTest report
         uses: test-summary/action@v2
