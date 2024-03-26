@@ -7,7 +7,17 @@ import pandas as pd
 import numpy as np
 import faiss
 import azure.functions as func
-from utils import read_blob, timer
+from utils import read_blob, timer, count_tokens
+
+
+# Cost table per 1000 tokens. Format is [input cost, output cost]
+LLM_RATES = {
+    'gpt35_4k': [0.0021, 0.003], 
+    'gpt_16k': [0.0007, 0.0021], 
+    'gpt4_1106': [0.041, 0.082]
+}
+
+EMBED_COST = 0.000136  # per 1000 tokens
 
 
 class rag():
@@ -35,7 +45,7 @@ class rag():
 
     def generate(self) -> func.HttpResponse:
         if self.body:
-            data = read_blob('data.csv', pd.read_csv)
+            data = read_blob('data.csv', pd.read_csv)  # can be cached as a global var to reduce runtime
             embedding, embed_time = self._embed()
             (scores, ids), search_time = self._index(embedding)
             entity, entity_extraction_time = self._entity_extractor()
@@ -45,6 +55,13 @@ class rag():
             response, generate_time = self._augment()
 
             logging.info("Response: %s", response)
+
+            # Cost calculation:
+            embed_tokens = count_tokens(self.body, 'text-embedding-ada-002')
+            embed_cost = embed_tokens / 1000 * EMBED_COST
+            llm_tokens_in = count_tokens(self.prompt, 'gpt-3.5-turbo')
+            llm_tokens_out = count_tokens(response, 'gpt-3.5-turbo')
+            llm_cost = "N/A" if not LLM_RATES.get(self.model) else np.dot(LLM_RATES.get(self.model), [llm_tokens_in/1000, llm_tokens_out/1000])
 
             return func.HttpResponse(
                 json.dumps({
@@ -62,18 +79,18 @@ class rag():
                         },
                         "tokens": {
                             "embed": {
-                                "in": len(self.body.split(' ')),
+                                "in": embed_tokens,
                                 "out": len(embedding[0])
                             },
                             "llm": {
-                                "in": len(self.prompt.split(' ')),
-                                "out": len(response.split(' '))
+                                "in": llm_tokens_in,
+                                "out": llm_tokens_out
                             },
                         },
                         "cost": {
-                            "embed": len(self.body.split(' ')) / 1000 * 0.000136,
-                            "llm": 0,
-                            "total": 0
+                            "embed": embed_cost,
+                            "llm": llm_cost,
+                            "total": embed_cost + llm_cost
                         },
                         # "embedding": embedding,
                         "entity": entity
@@ -102,7 +119,7 @@ class rag():
 
     @timer
     def _index(self, embedding) -> list:
-        index = read_blob('chunks.faiss', faiss.read_index)
+        index = read_blob('chunks.faiss', faiss.read_index)  # can be cached as a global var to reduce runtime
         scores, ids = index.search(embedding, k=self.k)
         return scores, ids
 

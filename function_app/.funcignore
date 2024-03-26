@@ -8,3 +8,5 @@ test
 .venv
 experiment.ipynb
 __pycache__
+tests/
+

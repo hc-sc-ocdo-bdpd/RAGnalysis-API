@@ -10,4 +10,4 @@ numpy
 packaging
 requests
 azure-storage-blob
-azure-eventhub
+tiktoken
