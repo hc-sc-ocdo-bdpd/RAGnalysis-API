@@ -2,9 +2,9 @@
 # # Run w/    python3.11 -m pytest --log-cli-level=INFO tests/
 import os
 import sys
+sys.path.append(os.path.join(os.getcwd()))
 sys.path.append(os.path.join(os.getcwd(), 'function_app'))
 import logging
-logging.info(sys.path)
 import unittest
 import azure.functions as func
 
