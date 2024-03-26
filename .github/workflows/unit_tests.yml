@@ -31,7 +31,6 @@ jobs:
           echo -e "AzureWebJobsStorage=${{ secrets.AzureWebJobsStorage }}\nFUNCTIONS_WORKER_RUNTIME=${{ secrets.FUNCTIONS_WORKER_RUNTIME }}\nAzureWebJobsFeatureFlags=${{ secrets.AzureWebJobsFeatureFlags }}\nBlobStorageConnectionString=${{ secrets.BlobStorageConnectionString }}\nOPENAI_KEY=${{ secrets.OPENAI_KEY }}\nFUNCTION_KEY=${{ secrets.FUNCTION_KEY }}\nCONNECTION_STRING=${{ secrets.CONNECTION_STRING }}\nSTORAGE_KEY=${{ secrets.STORAGE_KEY }}\nSTORAGE_URL=${{ secrets.STORAGE_URL }}\nSTORAGE_CONTAINER=${{ secrets.STORAGE_CONTAINER }}\nMISTRAL_MODEL=${{ secrets.MISTRAL_MODEL }}\nMISTRAL_ENDPOINT=${{ secrets.MISTRAL_ENDPOINT }}\nMISTRAL_KEY=${{ secrets.MISTRAL_KEY }}\nLLAMA_MODEL=${{ secrets.LLAMA_MODEL }}\nLLAMA_ENDPOINT=${{ secrets.LLAMA_ENDPOINT }}\nLLAMA_KEY=${{ secrets.LLAMA_KEY }}" > temp.txt
           cat temp.txt
           cp temp.txt tests/
-          pwd
 
       - name: Run Pytest
         run: pytest --log-cli-level=INFO tests/ --junit-xml=.test_report.xml
