@@ -8,7 +8,7 @@ logging.info(sys.path)
 import unittest
 import azure.functions as func
 
-from function_app.app import route_gpt35_4k
+from app import route_gpt35_4k
 
 def load_local_settings():
     with open('.env', 'r') as f:
