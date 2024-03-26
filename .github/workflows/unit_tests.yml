@@ -27,23 +27,23 @@ jobs:
 
       - name: 'Create env file'
         run: |
-          touch .env
-          echo AzureWebJobsStorage=${{ secrets.AzureWebJobsStorage }} > .env
-          echo FUNCTIONS_WORKER_RUNTIME=${{ secrets.FUNCTIONS_WORKER_RUNTIME }} > .env
-          echo AzureWebJobsFeatureFlags=${{ secrets.AzureWebJobsFeatureFlags }} > .env
-          echo BlobStorageConnectionString=${{ secrets.BlobStorageConnectionString }} > .env
-          echo OPENAI_KEY=${{ secrets.OPENAI_KEY }} > .env
-          echo FUNCTION_KEY=${{ secrets.FUNCTION_KEY }} > .env
-          echo CONNECTION_STRING=${{ secrets.CONNECTION_STRING }} > .env
-          echo STORAGE_KEY=${{ secrets.STORAGE_KEY }} > .env
-          echo STORAGE_URL=${{ secrets.STORAGE_URL }} > .env
-          echo STORAGE_CONTAINER=${{ secrets.STORAGE_CONTAINER }} > .env
-          echo MISTRAL_MODEL=${{ secrets.MISTRAL_MODEL }} > .env
-          echo MISTRAL_ENDPOINT=${{ secrets.MISTRAL_ENDPOINT }} > .env
-          echo MISTRAL_KEY=${{ secrets.MISTRAL_KEY }} > .env
-          echo LLAMA_MODEL=${{ secrets.LLAMA_MODEL }} > .env
-          echo LLAMA_ENDPOINT=${{ secrets.LLAMA_ENDPOINT }} > .env
-          echo LLAMA_KEY=${{ secrets.LLAMA_KEY }} > .env
+          touch temp.txt
+          echo AzureWebJobsStorage=${{ secrets.AzureWebJobsStorage }} > temp.txt
+          echo FUNCTIONS_WORKER_RUNTIME=${{ secrets.FUNCTIONS_WORKER_RUNTIME }} > temp.txt
+          echo AzureWebJobsFeatureFlags=${{ secrets.AzureWebJobsFeatureFlags }} > temp.txt
+          echo BlobStorageConnectionString=${{ secrets.BlobStorageConnectionString }} > temp.txt
+          echo OPENAI_KEY=${{ secrets.OPENAI_KEY }} > temp.txt
+          echo FUNCTION_KEY=${{ secrets.FUNCTION_KEY }} > temp.txt
+          echo CONNECTION_STRING=${{ secrets.CONNECTION_STRING }} > temp.txt
+          echo STORAGE_KEY=${{ secrets.STORAGE_KEY }} > temp.txt
+          echo STORAGE_URL=${{ secrets.STORAGE_URL }} > temp.txt
+          echo STORAGE_CONTAINER=${{ secrets.STORAGE_CONTAINER }} > temp.txt
+          echo MISTRAL_MODEL=${{ secrets.MISTRAL_MODEL }} > temp.txt
+          echo MISTRAL_ENDPOINT=${{ secrets.MISTRAL_ENDPOINT }} > temp.txt
+          echo MISTRAL_KEY=${{ secrets.MISTRAL_KEY }} > temp.txt
+          echo LLAMA_MODEL=${{ secrets.LLAMA_MODEL }} > temp.txt
+          echo LLAMA_ENDPOINT=${{ secrets.LLAMA_ENDPOINT }} > temp.txt
+          echo LLAMA_KEY=${{ secrets.LLAMA_KEY }} > temp.txt
           cat temp.txt
           cp temp.txt tests/
           pwd
