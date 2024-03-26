@@ -45,6 +45,8 @@ jobs:
           echo LLAMA_ENDPOINT=${{ secrets.LLAMA_ENDPOINT }} > .env
           echo LLAMA_KEY=${{ secrets.LLAMA_KEY }} > .env
           cat .env
+          cp .env tests/.env
+          pwd
 
       - name: Run Pytest
         run: pytest --log-cli-level=INFO tests/ --junit-xml=.test_report.xml
