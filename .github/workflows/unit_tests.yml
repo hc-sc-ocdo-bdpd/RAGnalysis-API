@@ -47,9 +47,7 @@ jobs:
           cat .env
 
       - name: Run Pytest
-        run: |
-          cd function_app
-          pytest --log-cli-level=INFO tests/ --junit-xml=.test_report.xml
+        run: pytest --log-cli-level=INFO tests/ --junit-xml=.test_report.xml
 
       - name: Generate PyTest report
         uses: test-summary/action@v2
