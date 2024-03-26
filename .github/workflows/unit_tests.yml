@@ -22,11 +22,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r function_app/requirements.txt
+          pip install -r requirements.txt
           pip install pytest==7.4.0
+        working-directory: function_app
 
       - name: Run Pytest
-        run: pytest --log-cli-level=INFO function_app/tests/ --junit-xml=.test_report.xml
+        run: pytest --log-cli-level=INFO tests/ --junit-xml=.test_report.xml
+        working-directory: function_app
 
       - name: Generate PyTest report
         uses: test-summary/action@v2
