@@ -12,14 +12,11 @@ from app import route_gpt35_4k
 
 def load_local_settings():
     with open('temp.txt', 'r') as f:
-        logging.info(os.environ)
-        logging.info(len(os.environ))
         for line in f.read().splitlines():
             key, value = line.split('=', maxsplit=1)
             os.environ[key] = value
             logging.info(key)
         logging.info(os.environ)
-        logging.info(len(os.environ))
               
 
 logging.getLogger("azure.storage.common.storageclient").setLevel(logging.WARNING)
