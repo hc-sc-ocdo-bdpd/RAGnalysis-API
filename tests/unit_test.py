@@ -15,6 +15,7 @@ def load_local_settings():
         for line in f.read().splitlines():
             key, value = line.split('=', maxsplit=1)
             os.environ[key] = value
+        logging.info(os.environ)
               
 
 logging.getLogger("azure.storage.common.storageclient").setLevel(logging.WARNING)
