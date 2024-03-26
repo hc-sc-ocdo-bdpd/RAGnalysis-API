@@ -11,10 +11,11 @@ import azure.functions as func
 from app import route_gpt35_4k
 
 def load_local_settings():
-    with open('.env', 'r') as f:
+    with open('temp.txt', 'r') as f:
         for line in f.read().splitlines():
             key, value = line.split('=', maxsplit=1)
             os.environ[key] = value
+            logging.info(key)
         logging.info(os.environ)
               
 

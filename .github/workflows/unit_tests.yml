@@ -44,8 +44,8 @@ jobs:
           echo LLAMA_MODEL=${{ secrets.LLAMA_MODEL }} > .env
           echo LLAMA_ENDPOINT=${{ secrets.LLAMA_ENDPOINT }} > .env
           echo LLAMA_KEY=${{ secrets.LLAMA_KEY }} > .env
-          cat .env
-          cp .env tests/.env
+          cat temp.txt
+          cp temp.txt tests/
           pwd
 
       - name: Run Pytest
