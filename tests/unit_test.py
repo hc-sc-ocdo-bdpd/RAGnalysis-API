@@ -1,20 +1,21 @@
-# https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=asgi%2Capplication-level&pivots=python-mode-decorators#unit-testing
-# Run w/    python3.11 -m pytest --log-cli-level=INFO tests/
+# # https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=asgi%2Capplication-level&pivots=python-mode-decorators#unit-testing
+# # Run w/    python3.11 -m pytest --log-cli-level=INFO tests/
 import os
 import sys
-sys.path.append('function_app')
+sys.path.append(os.path.join(os.getcwd(), 'function_app'))
 import json
 import logging
 import unittest
 import azure.functions as func
 
-from function_app import route_gpt35_4k
+from function_app.app import route_gpt35_4k
 
 def load_local_settings():
-    with open('local.settings.json', 'r') as f:
-        local_settings = json.load(f)
-        for key, value in local_settings.get('Values', {}).items():
+    with open('.env', 'r') as f:
+        for line in f.read().splitlines():
+            key, value = line.split('=', maxsplit=1)
             os.environ[key] = value
+              
 
 logging.getLogger("azure.storage.common.storageclient").setLevel(logging.WARNING)
 logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
