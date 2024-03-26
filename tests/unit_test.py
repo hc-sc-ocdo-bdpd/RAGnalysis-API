@@ -3,13 +3,14 @@
 import os
 import sys
 sys.path.append(os.path.join(os.getcwd()))
-sys.path.append(os.path.join(os.getcwd(), 'function_app'))
+sys.path.append(os.path.join(os.getcwd(), 'app'))
 import logging
 import unittest
 import azure.functions as func
 
-from app import route_gpt35_4k
+from function_app import route_gpt35_4k
 
+# Simulating environment variables in local.settings.json.
 def load_local_settings():
     with open('temp.txt', 'r') as f:
         for line in f.read().splitlines():
@@ -22,6 +23,7 @@ def load_local_settings():
 logging.getLogger("azure.storage.common.storageclient").setLevel(logging.WARNING)
 logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
 load_local_settings()
+
 
 class TestFunction(unittest.TestCase):
 
