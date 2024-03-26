@@ -65,7 +65,7 @@ class rag():
 
             return func.HttpResponse(
                 json.dumps({
-                    "id": time.time(),
+                    "id": time.time() * 1e6,
                     "response": response,
                     "sources": relevant_data.assign(similarity=scores[0])[['title', 'similarity', 'url', 'chunks']].to_dict(orient='records'),
                     "parameters": self.__dict__,
