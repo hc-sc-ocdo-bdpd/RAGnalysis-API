@@ -1,6 +1,8 @@
 # https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=asgi%2Capplication-level&pivots=python-mode-decorators#unit-testing
 # Run w/    python3.11 -m pytest --log-cli-level=INFO tests/
 import os
+import sys
+sys.path.append('function_app')
 import json
 import logging
 import unittest
