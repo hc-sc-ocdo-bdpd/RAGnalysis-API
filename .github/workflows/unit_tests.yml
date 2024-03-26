@@ -27,6 +27,7 @@ jobs:
 
       - name: 'Create env file'
         run: |
+          cd tests
           touch .env
           echo AzureWebJobsStorage=${{ secrets.AzureWebJobsStorage }} > .env
           echo FUNCTIONS_WORKER_RUNTIME=${{ secrets.FUNCTIONS_WORKER_RUNTIME }} > .env
