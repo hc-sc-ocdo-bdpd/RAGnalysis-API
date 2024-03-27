@@ -8,8 +8,6 @@ import logging
 import unittest
 import azure.functions as func
 
-from function_app import route_gpt35_4k
-
 # Simulating environment variables in local.settings.json.
 def load_local_settings():
     with open('temp.txt', 'r') as f:
@@ -28,6 +26,7 @@ load_local_settings()
 class TestFunction(unittest.TestCase):
 
   def test_gpt35a(self):
+    from function_app import route_gpt35_4k
     # Construct a mock HTTP request.
     req = func.HttpRequest(method='GET',
                            body=None,
