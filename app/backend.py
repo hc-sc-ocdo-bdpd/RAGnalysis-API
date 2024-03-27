@@ -3,11 +3,9 @@ import json
 import time
 import logging
 import requests
-import pandas as pd
 import numpy as np
-import faiss
 import azure.functions as func
-from utils import read_blob, timer, count_tokens
+from utils import timer, count_tokens
 
 
 # Cost table per 1000 tokens. Format is [input cost, output cost]
@@ -43,11 +41,10 @@ class rag():
         self.chunk_limit = int(req.params.get('chunk_limit') or 150) 
         self.k = int(req.params.get('k') or 3) 
 
-    def generate(self) -> func.HttpResponse:
+    def generate(self, data, index) -> func.HttpResponse:
         if self.body:
-            data = read_blob('data.csv', pd.read_csv)  # can be cached as a global var to reduce runtime
             embedding, embed_time = self._embed()
-            (scores, ids), search_time = self._index(embedding)
+            (scores, ids), search_time = self._index(index, embedding)
             entity, entity_extraction_time = self._entity_extractor()
             relevant_data = data.iloc[ids[0]]
             context = ' | '.join(relevant_data['chunks'][0:self.chunk_limit])
@@ -65,7 +62,7 @@ class rag():
 
             return func.HttpResponse(
                 json.dumps({
-                    "id": time.time() * 1e6,
+                    "id": round(time.time() * 1e3),
                     "response": response,
                     "sources": relevant_data.assign(similarity=scores[0])[['title', 'similarity', 'url', 'chunks']].to_dict(orient='records'),
                     "parameters": self.__dict__,
@@ -118,8 +115,7 @@ class rag():
             return np.array([embedding], dtype='float32')
 
     @timer
-    def _index(self, embedding) -> list:
-        index = read_blob('chunks.faiss', faiss.read_index)  # can be cached as a global var to reduce runtime
+    def _index(self, index, embedding) -> list:
         scores, ids = index.search(embedding, k=self.k)
         return scores, ids
 
