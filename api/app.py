@@ -20,7 +20,8 @@ class RagnalysisClient:
                temperature: Optional[float] = 0.9, top_p: Optional[float] = 0.9, 
                do_sample: Optional[bool] = True, frequency_penalty: Optional[float] = 0,
                presence_penalty: Optional[float] = 0, max_new_tokens: Optional[int] = 200,
-               chunk_limit: Optional[int] = 150, k: Optional[int] = 3) -> dict[str: any]:
+               chunk_limit: Optional[int] = 150, k: Optional[int] = 3, 
+               debug: Optional[bool] = False) -> dict[str: any]:
         
         try:
             response = requests.post(
@@ -37,11 +38,13 @@ class RagnalysisClient:
                     "chunk_limit": chunk_limit,
                     "k": k
                 }
-            ).json()
+            )
+            if not debug:
+                response = response.json()
         except Exception as e:
             raise e("ERROR: API failed to process")
         else:
-            if self.persist: 
+            if self.persist and not debug: 
                 self._persist(response)
             return response
     
