@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ragnalysis-client"
+name = "ragnalysis"
 description = "Wrapper around the RAGnalysis API"
 readme = "README.md"
 requires-python = ">=3.10"
