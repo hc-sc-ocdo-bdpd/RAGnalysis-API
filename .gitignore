@@ -9,6 +9,7 @@ __pycache__/
 # Notebooks
 api_demo.ipynb
 storage_api_demo.ipynb
+temp.txt
 
 # Distribution / packaging
 .Python
