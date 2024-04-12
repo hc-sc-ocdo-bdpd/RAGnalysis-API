@@ -11,7 +11,7 @@ from utils import timer, count_tokens
 # Cost table per 1000 tokens. Format is [input cost, output cost]
 LLM_RATES = {
     'gpt35_4k': [0.0021, 0.003], 
-    'gpt_16k': [0.0007, 0.0021], 
+    'gpt35_16k': [0.0007, 0.0021], 
     'gpt4_1106': [0.041, 0.082]
 }
 
