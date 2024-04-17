@@ -8,7 +8,7 @@ import azure.functions as func
 from utils import timer, count_tokens
 
 
-# Cost table per 1000 tokens. Format is [input cost, output cost]
+# Pay-as-you-go cost table per 1000 tokens. Format is [input cost, output cost]
 LLM_RATES = {
     'gpt35_4k': [0.0021, 0.003], 
     'gpt35_16k': [0.0007, 0.0021], 
@@ -70,7 +70,6 @@ class rag():
         if self.body:
             embedding, embed_time = self._embed()
             (scores, ids), search_time = self._index(index, embedding)
-            entity, entity_extraction_time = self._entity_extractor()
             relevant_data = data.iloc[ids[0]]  # the most relevant chunks
             context = ' | '.join(relevant_data['chunks'][0:self.chunk_limit])  # joining the relevant chunks into a single string
             self.prompt = f"Answer: {self.body} {('using: ' + context) if self.use_rag else ''}"  # adding the chunks to the prompt
@@ -78,12 +77,12 @@ class rag():
 
             logging.info("Response: %s", response)
 
-            # Cost calculation:
+            # Telemetry calculation:
             embed_tokens = count_tokens(self.body, 'text-embedding-ada-002')
             embed_cost = embed_tokens / 1000 * EMBED_COST
             llm_tokens_in = count_tokens(self.prompt, 'gpt-3.5-turbo')
             llm_tokens_out = count_tokens(response, 'gpt-3.5-turbo')
-            llm_cost = "N/A" if not LLM_RATES.get(self.model) else np.dot(LLM_RATES.get(self.model), [llm_tokens_in/1000, llm_tokens_out/1000])
+            llm_cost = 0 if not LLM_RATES.get(self.model) else np.dot(LLM_RATES.get(self.model), [llm_tokens_in/1000, llm_tokens_out/1000])
 
             return func.HttpResponse(
                 json.dumps({
@@ -95,9 +94,8 @@ class rag():
                         "runtime": {
                             "embed": round(embed_time, 2),
                             "search": round(search_time, 2),
-                            "entity_extraction": round(entity_extraction_time, 2),
                             "generate": round(generate_time, 2),
-                            "total": round(embed_time + search_time + generate_time + entity_extraction_time, 2)
+                            "total": round(embed_time + search_time + generate_time, 2)
                         },
                         "tokens": {
                             "embed": {
@@ -114,8 +112,6 @@ class rag():
                             "llm": llm_cost,
                             "total": embed_cost + llm_cost
                         },
-                        # "embedding": embedding,
-                        "entity": entity
                     }
                 }),
                 mimetype="application/json"
@@ -160,12 +156,6 @@ class rag():
         return scores, ids
 
     @timer
-    def _entity_extractor(self) -> tuple[str, float]:
-        """TODO: Entity extraction function for extracting entities from user prompts"""
-
-        return ""
-
-    @timer
     def _augment(self) -> tuple[str, float]:
         """Parent function for choosing which LLM to prompt for a response"""
 
@@ -181,16 +171,14 @@ class rag():
 
     def _ml_studio_model(self) -> str:
         """Child function (1/3) of _augment() that routes to the ML Studio models"""
+        # NOTE: PLease reformat the "input_data" key if you are not using a 'Chat Completions' model
 
-        model = self.model.upper()
-        endpoint = os.environ[f'{model}_ENDPOINT']
         try:
             response = requests.post(
-                url = f'https://ragnalysis-{endpoint}.eastus2.inference.ml.azure.com/score',
+                url = f'https://{self.model}.eastus2.inference.ml.azure.com/score',
                 headers = {
                     'Content-Type':'application/json',
-                    'Authorization':('Bearer '+ os.environ[f'{model}_KEY']), 
-                    'azureml-model-deployment': os.environ[f'{model}_MODEL']
+                    'Authorization':('Bearer '+ os.environ[f'{self.model.upper()}_KEY'])
                 },
                 json = {
                     "input_data": {
