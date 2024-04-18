@@ -75,6 +75,7 @@ class rag():
                 relevant_data = data.iloc[ids[0]]  # the most relevant chunks
                 context = list(relevant_data['chunks'].str[:self.chunk_limit])  # joining the relevant chunks into a single string
                 prompt = self._prompt(context)
+                logging.info(prompt)
                 response, generate_time = self._augment(prompt)
             except Exception as e:
                 return func.HttpResponse(f"{e}: API failed to process", status_code=400)
