@@ -75,7 +75,6 @@ class rag():
                 relevant_data = data.iloc[ids[0]]  # the most relevant chunks
                 context = list(relevant_data['chunks'].str[:self.chunk_limit])  # joining the relevant chunks into a single string
                 prompt = self._prompt(context)
-                logging.info(prompt)
                 response, generate_time = self._augment(prompt)
             except Exception as e:
                 return func.HttpResponse(f"{e}: API failed to process", status_code=400)
@@ -258,7 +257,7 @@ class rag():
         except Exception as e:
             raise Exception(f'{e}: Augment error: AI studio model failed to generate prompt with the given context. \n \
                     Try setting use_rag to False to see if it is an issue with the context. \n \
-                    Response object: {response}')
+                    Response object: {response}. Prompt: {prompt}')
 
     def _containerized_model(self, prompt: list[dict]) -> str:
         """Child function (3/3) of _augment() that routes to the containerized models"""
