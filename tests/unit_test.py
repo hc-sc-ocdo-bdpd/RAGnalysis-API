@@ -14,8 +14,6 @@ def load_local_settings():
         for line in f.read().splitlines():
             key, value = line.split('=', maxsplit=1)
             os.environ[key] = value
-            logging.info(key)
-        logging.info(os.environ)
               
 
 logging.getLogger("azure.storage.common.storageclient").setLevel(logging.WARNING)
@@ -33,7 +31,7 @@ class TestFunction(unittest.TestCase):
                            url='/api/gpt35a',
                            params={
                               "body": 'What is life?',
-                              "use_rag": False,
+                              "use_rag": True,
                               "temperature": 0.9,
                               "top_p": 0.9,
                               "do_sample": True,

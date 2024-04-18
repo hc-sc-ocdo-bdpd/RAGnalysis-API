@@ -165,10 +165,10 @@ class rag():
     def _prompt(self, context) -> list[dict]:
     
         if not self.use_rag:
-            return {
+            return [{
                 "role": "user",
                 "content": self.body
-            }
+            }]
 
         prompt = [
             {
