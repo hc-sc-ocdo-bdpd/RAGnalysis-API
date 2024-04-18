@@ -163,36 +163,38 @@ class rag():
         return scores, ids
 
     def _prompt(self, context) -> list[dict]:
-    
-        if not self.use_rag:
-            return [{
-                "role": "user",
-                "content": self.body
-            }]
+        try:
+            if not self.use_rag:
+                return [{
+                    "role": "user",
+                    "content": self.body
+                }]
 
-        prompt = [
-            {
-                "role": "system",
-                "content": """Assistant is an intelligent chatbot designed to help public servants answer questions.
-                              Instructions
-                              - Answer questions professionally
-                              - Try to use the provided information if it makes sense
-                              - If you're unsure of an answer, you can say "I don't know" or "I'm not sure" and recommend users go to the MySource website for more information."""
-            }
-        ]
-        for index, item in enumerate(context):
-            prompt.append({
+            prompt = [
                 {
                     "role": "system",
-                    "content": f"Information {index+1}: {item}"
+                    "content": """Assistant is an intelligent chatbot designed to help public servants answer questions.
+                                Instructions
+                                - Answer questions professionally
+                                - Try to use the provided information if it makes sense
+                                - If you're unsure of an answer, you can say "I don't know" or "I'm not sure" and recommend users go to the MySource website for more information."""
                 }
+            ]
+            for index, item in enumerate(context):
+                prompt.append({
+                    {
+                        "role": "system",
+                        "content": f"Information {index+1}: {item}"
+                    }
+                })
+            prompt.append({
+                "role": "user",
+                "content": self.body
             })
-        prompt.append({
-            "role": "user",
-            "content": self.body
-        })
 
-        return prompt
+            return prompt
+        except Exception as e:
+            raise Exception(f"{e}: Prompt creation failed. Context: {context}")
 
     @timer
     def _augment(self, prompt: list[dict]) -> tuple[str, float]:
