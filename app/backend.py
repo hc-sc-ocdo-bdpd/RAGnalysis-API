@@ -192,6 +192,8 @@ class rag():
             "content": self.body
         })
 
+        return prompt
+
     @timer
     def _augment(self, prompt: list[dict]) -> tuple[str, float]:
         """Parent function for choosing which LLM to prompt for a response"""
