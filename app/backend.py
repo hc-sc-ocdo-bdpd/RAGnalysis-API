@@ -1,3 +1,4 @@
+# pylint: skip-file
 import os
 import json
 import time
@@ -68,54 +69,60 @@ class rag():
 
         """
         if self.body:
-            embedding, embed_time = self._embed()
-            (scores, ids), search_time = self._index(index, embedding)
-            relevant_data = data.iloc[ids[0]]  # the most relevant chunks
-            context = ' | '.join(relevant_data['chunks'][0:self.chunk_limit])  # joining the relevant chunks into a single string
-            self.prompt = f"Answer: {self.body} {('using: ' + context) if self.use_rag else ''}"  # adding the chunks to the prompt
-            response, generate_time = self._augment()
+            try:
+                embedding, embed_time = self._embed()
+                (scores, ids), search_time = self._index(index, embedding)
+                relevant_data = data.iloc[ids[0]]  # the most relevant chunks
+                context = list(relevant_data['chunks'].str[:self.chunk_limit])  # joining the relevant chunks into a single string
+                prompt = self._prompt(context)
+                response, generate_time = self._augment(prompt)
+            except Exception as e:
+                return func.HttpResponse(f"{e}: API failed to process", status_code=400)
 
             logging.info("Response: %s", response)
 
             # Telemetry calculation:
             embed_tokens = count_tokens(self.body, 'text-embedding-ada-002')
             embed_cost = embed_tokens / 1000 * EMBED_COST
-            llm_tokens_in = count_tokens(self.prompt, 'gpt-3.5-turbo')
+            llm_tokens_in = count_tokens(prompt, 'gpt-3.5-turbo')
             llm_tokens_out = count_tokens(response, 'gpt-3.5-turbo')
             llm_cost = 0 if not LLM_RATES.get(self.model) else np.dot(LLM_RATES.get(self.model), [llm_tokens_in/1000, llm_tokens_out/1000])
 
-            return func.HttpResponse(
-                json.dumps({
-                    "id": round(time.time() * 1e3),
-                    "response": response,
-                    "sources": relevant_data.assign(similarity=scores[0])[['title', 'similarity', 'url', 'chunks']].to_dict(orient='records'),
-                    "parameters": self.__dict__,
-                    "logs": {
-                        "runtime": {
-                            "embed": round(embed_time, 2),
-                            "search": round(search_time, 2),
-                            "generate": round(generate_time, 2),
-                            "total": round(embed_time + search_time + generate_time, 2)
-                        },
-                        "tokens": {
-                            "embed": {
-                                "in": embed_tokens,
-                                "out": len(embedding[0])
+            try:
+                return func.HttpResponse(
+                    json.dumps({
+                        "id": round(time.time() * 1e3),
+                        "response": response,
+                        "sources": relevant_data.assign(similarity=scores[0])[['title', 'similarity', 'url', 'chunks']].to_dict(orient='records'),
+                        "parameters": self.__dict__,
+                        "logs": {
+                            "runtime": {
+                                "embed": round(embed_time, 2),
+                                "search": round(search_time, 2),
+                                "generate": round(generate_time, 2),
+                                "total": round(embed_time + search_time + generate_time, 2)
                             },
-                            "llm": {
-                                "in": llm_tokens_in,
-                                "out": llm_tokens_out
+                            "tokens": {
+                                "embed": {
+                                    "in": embed_tokens,
+                                    "out": len(embedding[0])
+                                },
+                                "llm": {
+                                    "in": llm_tokens_in,
+                                    "out": llm_tokens_out
+                                },
                             },
-                        },
-                        "cost": {
-                            "embed": embed_cost,
-                            "llm": llm_cost,
-                            "total": embed_cost + llm_cost
-                        },
-                    }
-                }),
-                mimetype="application/json"
-            )
+                            "cost": {
+                                "embed": embed_cost,
+                                "llm": llm_cost,
+                                "total": embed_cost + llm_cost
+                            },
+                        }
+                    }),
+                    mimetype="application/json"
+                )
+            except Exception as e:
+                return func.HttpResponse(f"{e}: API successfully generated response, but failed to send: {response}", status_code=400)
         else:
             return func.HttpResponse(
                 "This HTTP triggered function executed successfully. Pass a body in the query string or in the request body for a personalized response.",
@@ -138,7 +145,7 @@ class rag():
                 json = { "input": self.body }
             ).json()['data'][0]['embedding']
         except KeyError as e:
-            raise e('ADA embedding API failed to embed: %s', self.body) 
+            raise Exception(f'{e}: Embedding error: ADA embedding API failed to embed: %s', self.body) 
         else:
             return np.array([embedding], dtype='float32')
 
@@ -155,21 +162,51 @@ class rag():
         scores, ids = index.search(embedding, k=self.k)
         return scores, ids
 
+    def _prompt(self, context) -> list[dict]:
+    
+        if not self.use_rag:
+            return {
+                "role": "user",
+                "content": self.body
+            }
+
+        prompt = [
+            {
+                "role": "system",
+                "content": """Assistant is an intelligent chatbot designed to help public servants answer questions.
+                              Instructions
+                              - Answer questions professionally
+                              - Try to use the provided information if it makes sense
+                              - If you're unsure of an answer, you can say "I don't know" or "I'm not sure" and recommend users go to the MySource website for more information."""
+            }
+        ]
+        for index, item in enumerate(context):
+            prompt.append({
+                {
+                    "role": "system",
+                    "content": f"Information {index+1}: {item}"
+                }
+            })
+        prompt.append({
+            "role": "user",
+            "content": self.body
+        })
+
     @timer
-    def _augment(self) -> tuple[str, float]:
+    def _augment(self, prompt: list[dict]) -> tuple[str, float]:
         """Parent function for choosing which LLM to prompt for a response"""
 
         if self.model in ['llama', 'mistral']:
-            response = self._ml_studio_model()
+            response = self._ml_studio_model(prompt)
         elif self.model in ['gpt35_4k', 'gpt35_16k', 'gpt4_1106']:
-            response = self._ai_studio_model()
+            response = self._ai_studio_model(prompt)
         elif self.model in ['qwen']:
-            response = self._containerized_model()
+            response = self._containerized_model(prompt)
         else:
-            raise Exception("Invalid model choice")
+            raise Exception("Augment error: Invalid model choice")
         return response
 
-    def _ml_studio_model(self) -> str:
+    def _ml_studio_model(self, prompt: list[dict]) -> str:
         """Child function (1/3) of _augment() that routes to the ML Studio models"""
         # NOTE: PLease reformat the "input_data" key if you are not using a 'Chat Completions' model
 
@@ -182,10 +219,7 @@ class rag():
                 },
                 json = {
                     "input_data": {
-                        "input_string": [{
-                            "role": "user",
-                            "content": self.prompt
-                        }],
+                        "input_string": prompt,
                         "parameters": {
                             "temperature": self.temperature,
                             "top_p": self.top_p,
@@ -196,22 +230,19 @@ class rag():
                 }
             ).json()
             return response.get('output')
-        except KeyError as e:
-            raise e(f'ML studio model failed to generate prompt with the given context. \n \
+        except Exception as e:
+            raise Exception(f'{e}: Augment error: ML studio model failed to generate prompt with the given context. \n \
                     Try setting use_rag to False to see if it is an issue with the context. \n \
                     Response object: {response}')
 
-    def _ai_studio_model(self) -> str:
+    def _ai_studio_model(self, prompt: list[dict]) -> str:
         """Child function (2/3) of _augment() that routes to the OpenAI Studio models"""
         try:
             response = requests.post(
                 url = f"https://ragnalysis.openai.azure.com/openai/deployments/{self.model}/chat/completions?api-version=2023-05-15", 
                 headers = { "Content-Type": "application/json", "api-key": os.environ['OPENAI_KEY'] }, 
                 json = { 
-                    "messages": [{
-                        "role": "user",
-                        "content": self.prompt
-                    }],
+                    "messages": prompt,
                     "temperature": self.temperature,
                     "top_p": self.top_p,
                     "frequency_penalty": self.frequency_penalty,
@@ -221,18 +252,18 @@ class rag():
                 }
             ).json()
             return response['choices'][0]['message'].get('content')
-        except KeyError as e:
-            raise e(f'AI studio model failed to generate prompt with the given context. \n \
+        except Exception as e:
+            raise Exception(f'{e}: Augment error: AI studio model failed to generate prompt with the given context. \n \
                     Try setting use_rag to False to see if it is an issue with the context. \n \
                     Response object: {response}')
 
-    def _containerized_model(self) -> str:
+    def _containerized_model(self, prompt: list[dict]) -> str:
         """Child function (3/3) of _augment() that routes to the containerized models"""
         try:
-            return requests.post(
+            response = requests.post(
                 url="https://localai-selfhost.salmonground-3deb4a95.canadaeast.azurecontainerapps.io/chat/completions",
                 json={
-                    "prompt": self.prompt,
+                    "prompt": self.body,  # RAG disabled; need to refactor the data model
                     "temperature": self.temperature,
                     "top_p": self.top_p,
                     "frequency_penalty": self.frequency_penalty,
@@ -240,8 +271,9 @@ class rag():
                     "max_tokens": self.max_new_tokens,
                     "stop": None
                 }
-            ).json()['response']
-        except KeyError as e:
-            raise e(f'AI studio model failed to generate prompt with the given context. \n \
+            ).json()
+            return response['response']
+        except Exception as e:
+            raise Exception(f'{e}: Augment error: Container model failed to generate prompt with the given context. \n \
                     Try setting use_rag to False to see if it is an issue with the context. \n \
                     Response object: {response}')
