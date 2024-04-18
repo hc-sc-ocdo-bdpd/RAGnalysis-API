@@ -88,6 +88,66 @@ class rag():
             llm_tokens_out = count_tokens(response, 'gpt-3.5-turbo')
             llm_cost = 0 if not LLM_RATES.get(self.model) else np.dot(LLM_RATES.get(self.model), [llm_tokens_in/1000, llm_tokens_out/1000])
 
+            logging.info({
+                        "id": round(time.time() * 1e3),
+                        "response": response,
+                        "sources": relevant_data.assign(similarity=scores[0])[['title', 'similarity', 'url', 'chunks']].to_dict(orient='records'),
+                        "parameters": self.__dict__,
+                        "logs": {
+                            "runtime": {
+                                "embed": round(embed_time, 2),
+                                "search": round(search_time, 2),
+                                "generate": round(generate_time, 2),
+                                "total": round(embed_time + search_time + generate_time, 2)
+                            },
+                            "tokens": {
+                                "embed": {
+                                    "in": embed_tokens,
+                                    "out": len(embedding[0])
+                                },
+                                "llm": {
+                                    "in": llm_tokens_in,
+                                    "out": llm_tokens_out
+                                },
+                            },
+                            "cost": {
+                                "embed": embed_cost,
+                                "llm": llm_cost,
+                                "total": embed_cost + llm_cost
+                            },
+                        }
+                    })
+            
+            logging.info(json.dumps({
+                        "id": round(time.time() * 1e3),
+                        "response": response,
+                        "sources": relevant_data.assign(similarity=scores[0])[['title', 'similarity', 'url', 'chunks']].to_dict(orient='records'),
+                        "parameters": self.__dict__,
+                        "logs": {
+                            "runtime": {
+                                "embed": round(embed_time, 2),
+                                "search": round(search_time, 2),
+                                "generate": round(generate_time, 2),
+                                "total": round(embed_time + search_time + generate_time, 2)
+                            },
+                            "tokens": {
+                                "embed": {
+                                    "in": embed_tokens,
+                                    "out": len(embedding[0])
+                                },
+                                "llm": {
+                                    "in": llm_tokens_in,
+                                    "out": llm_tokens_out
+                                },
+                            },
+                            "cost": {
+                                "embed": embed_cost,
+                                "llm": llm_cost,
+                                "total": embed_cost + llm_cost
+                            },
+                        }
+                    }))
+
             try:
                 return func.HttpResponse(
                     json.dumps({
