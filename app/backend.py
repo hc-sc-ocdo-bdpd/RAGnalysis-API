@@ -162,7 +162,7 @@ class rag():
         scores, ids = index.search(embedding, k=self.k)
         return scores, ids
 
-    def _prompt(self, context) -> list[dict]:
+    def _prompt(self, context: list[str]) -> list[dict]:
         try:
             if not self.use_rag:
                 return [{
@@ -182,10 +182,8 @@ class rag():
             ]
             for index, item in enumerate(context):
                 prompt.append({
-                    {
-                        "role": "system",
-                        "content": f"Information {index+1}: {item}"
-                    }
+                    "role": "system",
+                    "content": f"Information {index+1}: {item}"
                 })
             prompt.append({
                 "role": "user",
@@ -193,6 +191,7 @@ class rag():
             })
 
             return prompt
+
         except Exception as e:
             raise Exception(f"{e}: Prompt creation failed. Context: {context}")
 
