@@ -215,7 +215,7 @@ class rag():
 
         try:
             response = requests.post(
-                url = f'https://{self.model}.eastus2.inference.ml.azure.com/score',
+                url = f'https://ragnalysis-{self.model}.eastus2.inference.ml.azure.com/score',
                 headers = {
                     'Content-Type':'application/json',
                     'Authorization':('Bearer '+ os.environ[f'{self.model.upper()}_KEY'])
