@@ -44,7 +44,7 @@ class RagnalysisClient:
         except Exception as e:
             raise Exception(f"{e}: API failed to process")
         else:
-            if self.persist and not debug: 
+            if self.persist and not debug and 'error' not in response.keys():
                 self._persist(response)
             return response
     
