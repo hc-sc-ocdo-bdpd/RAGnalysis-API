@@ -218,7 +218,7 @@ class rag():
     def _ml_studio_model(self, prompt: list[dict]) -> str:
         """Child function (1/3) of _augment() that routes to the ML Studio models"""
         # NOTE: Please reformat the "input_data" key if you are not using a 'Chat Completions' model
-
+        response = None
         try:
             response = requests.post(
                 url = f'https://ragnalysis-{self.model}.eastus2.inference.ml.azure.com/score',
@@ -240,12 +240,16 @@ class rag():
             ).json()
             return response.get('output')
         except Exception as e:
-            raise Exception(f'{e}: Augment error: ML studio model failed to generate prompt with the given context. \n \
-                    Try setting use_rag to False to see if it is an issue with the context. \n \
-                    Response object: {response}')
+            if not response:
+                raise Exception(f'{e}: ML Studio model returned no response. The model is likely down')
+            else:
+                raise Exception(f'{e}: Augment error: ML studio model failed to generate prompt with the given context. \n \
+                        Try setting use_rag to False to see if it is an issue with the context. \n \
+                        Response object: {response}')
 
     def _ai_studio_model(self, prompt: list[dict]) -> str:
         """Child function (2/3) of _augment() that routes to the OpenAI Studio models"""
+        response = None
         try:
             response = requests.post(
                 url = f"https://ragnalysis.openai.azure.com/openai/deployments/{self.model}/chat/completions?api-version=2023-05-15", 
@@ -262,12 +266,16 @@ class rag():
             ).json()
             return response['choices'][0]['message'].get('content')
         except Exception as e:
-            raise Exception(f'{e}: Augment error: AI studio model failed to generate prompt with the given context. \n \
-                    Try setting use_rag to False to see if it is an issue with the context. \n \
-                    Response object: {response}. Prompt: {prompt}')
+            if not response:
+                raise Exception(f'{e}: AI studio model returned no response. The model may be down or the API key is wrong')
+            else: 
+                raise Exception(f'{e}: Augment error: AI studio model failed to generate prompt with the given context. \n \
+                        Try setting use_rag to False to see if it is an issue with the context. \n \
+                        Response object: {response}. Prompt: {prompt}')
 
     def _containerized_model(self, prompt: list[dict]) -> str:
         """Child function (3/3) of _augment() that routes to the containerized models"""
+        response = None
         try:
             response = requests.post(
                 url="https://localai-selfhost.salmonground-3deb4a95.canadaeast.azurecontainerapps.io/chat/completions",
@@ -283,6 +291,9 @@ class rag():
             ).json()
             return response['response']
         except Exception as e:
-            raise Exception(f'{e}: Augment error: Container model failed to generate prompt with the given context. \n \
-                    Try setting use_rag to False to see if it is an issue with the context. \n \
-                    Response object: {response}')
+            if not response:
+                raise Exception(f'{e}: Container model returned no response. The model is likely down')
+            else:
+                raise Exception(f'{e}: Augment error: Container model failed to generate prompt with the given context. \n \
+                        Try setting use_rag to False to see if it is an issue with the context. \n \
+                        Response object: {response}')
