@@ -77,7 +77,10 @@ class rag():
                 prompt = self._prompt(context)
                 response, generate_time = self._augment(prompt)
             except Exception as e:
-                return func.HttpResponse(f"{e}: API failed to process", status_code=400)
+                return func.HttpResponse(
+                    json.dumps({"error": f"{e}: API failed to process"}), 
+                    status_code=400
+                )
 
             logging.info("Response: %s", response)
 
@@ -122,10 +125,13 @@ class rag():
                     mimetype="application/json"
                 )
             except Exception as e:
-                return func.HttpResponse(f"{e}: API successfully generated response, but failed to send: {response}", status_code=400)
+                return func.HttpResponse(
+                    json.dumps({"error": f"{e}: API successfully generated response, but failed to send: {response}"}), 
+                    status_code=400
+                )
         else:
             return func.HttpResponse(
-                "This HTTP triggered function executed successfully. Pass a body in the query string or in the request body for a personalized response.",
+                json.dumps({"success": "This HTTP triggered function executed successfully. Pass a body in the query string or in the request body for a personalized response."}),
                 status_code=200
             )
 
@@ -211,7 +217,7 @@ class rag():
 
     def _ml_studio_model(self, prompt: list[dict]) -> str:
         """Child function (1/3) of _augment() that routes to the ML Studio models"""
-        # NOTE: PLease reformat the "input_data" key if you are not using a 'Chat Completions' model
+        # NOTE: Please reformat the "input_data" key if you are not using a 'Chat Completions' model
 
         try:
             response = requests.post(
