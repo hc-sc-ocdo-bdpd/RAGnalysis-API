@@ -21,7 +21,7 @@ class RagnalysisClient:
                do_sample: Optional[bool] = True, frequency_penalty: Optional[float] = 0,
                presence_penalty: Optional[float] = 0, max_new_tokens: Optional[int] = 200,
                chunk_limit: Optional[int] = 150, k: Optional[int] = 3, 
-               debug: Optional[bool] = False) -> dict[str: any]:
+               debug: Optional[bool] = False, locale: Optional[str] = 'en') -> dict[str: any]:
         
         try:
             response = requests.post(
@@ -36,7 +36,8 @@ class RagnalysisClient:
                     "presence_penalty": presence_penalty,
                     "max_new_tokens": max_new_tokens,
                     "chunk_limit": chunk_limit,
-                    "k": k
+                    "k": k,
+                    "locale": locale
                 }
             )
             if not debug:
