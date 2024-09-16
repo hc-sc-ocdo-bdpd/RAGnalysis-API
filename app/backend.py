@@ -37,6 +37,7 @@ class rag():
             max_new_tokens      : max tokens to produce in the response
             chunk_limit         : limit the size of each chunk passed to the llm (mostly for large chunk sizes)  
             k                   : how many chunks to pass to the llm as context
+            locale              : whether to use 'en' or 'fr' metaprompt
 
         """
         self.body = req.params.get('body')
@@ -59,6 +60,7 @@ class rag():
         self.max_new_tokens = int(req.params.get('max_new_tokens') or 200)
         self.chunk_limit = int(req.params.get('chunk_limit') or 150)
         self.k = int(req.params.get('k') or 3) 
+        self.locale = req.params.get('locale') or 'en'
 
     def generate(self, data, index) -> func.HttpResponse:
         """Main method; coordinates other methods
@@ -175,26 +177,61 @@ class rag():
                     "role": "user",
                     "content": self.body
                 }]
-
+            
+            if self.locale == 'fr':
+                system_prompt = """
+                                Vous êtes un chatbot en conversation avec un humain. 
+                                Vous représentez un site web interne du gouvernement du Canada appelé "mySource". mySOURCE est une base de données interne contenant des informations organisationnelles, des politiques, des formulaires et d'autres ressources pour Santé Canada (SC), l'Agence de la santé publique du Canada (ASPC) et les Services partagés du Canada (SPC).
+                                A partir des extraits suivants d'un long document et d'une question, créez une réponse finale avec des références ("SOURCES").
+                                Si vous ne connaissez pas la réponse, dites simplement que vous ne savez pas. N'essayez pas d'inventer une réponse.
+                                Renvoyez TOUJOURS une partie "SOURCES" dans votre réponse et essayez de fournir les liens.
+                                Indiquez au début de votre réponse si vous utilisez les connaissances supplémentaires de mySource. N'oubliez pas que vous discutez avec l'utilisateur qui ne voit pas la partie "contexte" de l'invite. Répondez dans la langue dans laquelle l'utilisateur vous parle.
+                                """
+            else:
+                system_prompt = """
+                                You are a chatbot having a conversation with a human. 
+                                You are representing an internal Government of Canada website called 'mySource'. mySOURCE is an internal database containing organizational information, policies, forms, and other resources for Health Canada (HC), Public Health Agency of Canada (PHAC) and Shared Serviced Canada (SSC).
+                                Given the following extracted parts of a long document and a question, create a final answer with references ("SOURCES").
+                                If you don't know the answer, just say that you don't know. Don't try to make up an answer.
+                                ALWAYS return a "SOURCES" part in your answer and try to provide the links.
+                                Please indicate in start of the response whether you are using the additional knowledge from mySource. But also remember you are chatting with the user who does not see the context part of the prompt.   
+                                """
+            
+            newline = '.\n'  # cannot be used in f-strings in Python <3.12
+            
             prompt = [
                 {
-                    "role": "system",
-                    "content": """Assistant is an intelligent chatbot designed to help public servants answer questions.
-                                Instructions
-                                - Answer questions professionally
-                                - Try to use the provided information if it makes sense
-                                - If you're unsure of an answer, you can say "I don't know" or "I'm not sure" and recommend users go to the MySource website for more information."""
+                    "role": "user",
+                    "content":  f"""
+                                {system_prompt}
+                                
+                                {newline.join(context)}
+                                </s>
+                                [INST]
+                                {self.body}
+                                [/INST]
+                                """
                 }
             ]
-            for index, item in enumerate(context):
-                prompt.append({
-                    "role": "system",
-                    "content": f"Information {index+1}: {item}"
-                })
-            prompt.append({
-                "role": "user",
-                "content": self.body
-            })
+
+            # prompt = [
+            #     {
+            #         "role": "system",
+            #         "content": """Assistant is an intelligent chatbot designed to help public servants answer questions.
+            #                     - Answer questions professionally
+            #                     - Try to use the provided information if it makes sense
+            #                     - If you're unsure of an answer, you can say "I don't know" or "I'm not sure" and recommend users go to the MySource website for more information."""
+            #     }
+            # ]
+            # for index, item in enumerate(context):
+            #     prompt.append({
+            #         "role": "system",
+            #         "content": f"Information {index+1}: {item}"
+            #     })
+            # prompt.append({
+            #     "role": "user",
+            #     "content": self.body
+            # })
 
             return prompt
 
@@ -217,34 +254,33 @@ class rag():
 
     def _ml_studio_model(self, prompt: list[dict]) -> str:
         """Child function (1/3) of _augment() that routes to the ML Studio models"""
-        # NOTE: Please reformat the "input_data" key if you are not using a 'Chat Completions' model
+        # NOTE: This API format only supports the CHAT COMPLETIONS api
         response = None
         try:
+            deployment_name = f'{self.model.upper()}_DEPLOYMENT'
             response = requests.post(
-                url = f'https://ragnalysis-{self.model}.eastus2.inference.ml.azure.com/score',
+                # Note the naming of the deployment: ex llama-kddxu
+                url = f'https://{self.model}-{os.environ[deployment_name]}.eastus2.inference.ml.azure.com/v1/chat/completions',
                 headers = {
                     'Content-Type':'application/json',
                     'Authorization':('Bearer '+ os.environ[f'{self.model.upper()}_KEY'])
                 },
                 json = {
-                    "input_data": {
-                        "input_string": prompt,
-                        "parameters": {
-                            "temperature": self.temperature,
-                            "top_p": self.top_p,
-                            "do_sample": self.do_sample,
-                            "max_new_tokens": self.max_new_tokens
-                        }
-                    }
+                    "messages": prompt,
+                    "temperature": self.temperature,
+                    "top_p": self.top_p,
+                    "do_sample": self.do_sample,
+                    "max_tokens": self.max_new_tokens
                 }
             ).json()
-            return response.get('output')
+            return response.get['choices'][0]['message'].get('content')
         except Exception as e:
             if not response:
                 raise Exception(f'{e}: ML Studio model returned no response. The model is likely down')
             else:
                 raise Exception(f'{e}: Augment error: ML studio model failed to generate prompt with the given context. \n \
                         Try setting use_rag to False to see if it is an issue with the context. \n \
+                        Also make sure the endpoint is online and working \n \
                         Response object: {response}')
 
     def _ai_studio_model(self, prompt: list[dict]) -> str:
